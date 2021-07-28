@@ -1,0 +1,42 @@
+config:
+  user.vendor-data: |
+    #cloud-config
+    runcmd:
+      - timezonectl set-timezone Europe/Stockholm
+    users:
+      - name: jonas
+        gecos: Jonas Hendrikson
+        sudo: ALL=(ALL) NOPASSWD:ALL
+        shell: /bin/bash
+        ssh_authorized_keys:
+          - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDEFPW6YGJkprDLAc0dUZKJGGA/xgIQDG+Y4EROwcr2rORsqen+bMne0Kiqfwu915j4W9c36+VjYF66Z5VGf8avleVq42rB9EI/S4tEBo5y5+FZnH19Fesw580NC67OGHyj2N9ofBns7PMLAGbzhelgpEo40biRKaKAOZiHeIYxgaUb1ov66BcKbw0WJ0XZl3Nrfk2ks2d6s7mC2SXpIPS/c9esOvcOl03VZiuM8ViwIXy3skyCmob7mfU0fl8y6YkBxJeoOANaP2nflNxHL8QC7jtO1q8ArQyBIccv/MmOoFOgmLe9JG00Scuwpq/Fsgkbj+raa8gEmZGD71UKNE4JyzYHeNKhLpaplYKuc9ZEOblUwenb+nmmzKNn78n9NpdwVsc2eJLbnTeJXJEPTkxHBoYILlNcLcFnvjxC/uAJJ8tDsKPY2+TaBXQbgihXKMNe9hBmsZmZraBMYN7XAFzSjgIwOgosZWkg0fRxZ0BAwtSEoaKUioyZqyuUkfhz+5AuwhrQfuHy8GrDW2Ns9vCOflsz+GQpfzY+cBn6fp5wOCPEcm4pDeX+SyoXgmRk6FvirlNv0zsBbtuKQ9QusEk07JxMjiY0q2BYvWiYZFgk/NKO6dd/+ZMjMHzUWIJpWIUoBAiCMXHFmeKpXaoSlgLlL4VzJzeDj7Qc7XfYxMEEVQ== jonas@seven-of-nine
+        package_update: true
+        package_upgrade: true
+        packages:
+          - vim
+          - git
+          - curl
+    runcmd:
+      - [ wget, https://apt.puppet.com/puppet-release-focal.deb ]
+      - [ dpkg, -i, puppet-release-focal.deb ]
+      - [ apt, update ]
+      - [ apt, install, -y, puppet-agent ]
+      - [ sh, -c, "echo '[main]' >> /etc/puppetlabs/puppet/puppet.cont" ]
+      - [ sh, -c, "echo 'certname = puppetclient' >> /etc/puppetlabs/puppet/puppet.cont" ]
+      - [ sh, -c, "echo 'server = puppetmaster' >> /etc/puppetlabs/puppet/puppet.cont" ]
+      - [ systemctl, start, puppet ]
+      - [ systemctl, enable, puppet ]
+description: Puppet agent profile
+devices:
+  eth0:
+    name: eth0
+    nictype: bridged
+    parent: puppetbr0
+    type: nic
+  root:
+    path: /
+    pool: lxd
+    type: disk
+name: puppet-agent
+used_by:
+

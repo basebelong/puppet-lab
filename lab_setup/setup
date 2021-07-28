@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+
+# Setup script for labenvironment.
+# First edit the profile-puppet-{master,agent}.yaml in this directory to fit
+# your liking (most notably your public ssh key).
+# Depends on a working and initiated lxd install. Tries not to make too many
+# assumtions
+
+# Number of puppet agent containers
+n_pups=4
+
+err_exit () {
+	printf "%s" "$@" >&2
+	exit "$2"
+}
+
+# Check permissions
+if ! groups | grep "lxd"; then
+	err_exit "Not in lxd group"
+fi
+
+if (( $(id -u) == 0 )); then
+	err_exit "Error: 12 - Please do run as a less privileged user (needs to be a member of lxd group)"
+fi
+
+# Check for lxd installation
+if ! which lxd; then
+	err_exit "Error: 10 - No lxd installed (or in \$PATH)"	
+fi
+
+# Setup networkbridge
+if ! lxc network list --format csv | awk '/^puppetbr0/ {print $1}' >&2; then
+	lxc network create puppetbr0 ||
+		err_exit "Error: 11 - Error creating bridge"
+fi
+
+# Import profiles
+if ! lxc profile list --format csv | awk '/^puppet/ {print $1}' >&2; then
+	lxc profile create puppet-master
+	lxc profile create puppet-agent
+	cat profile-puppet-master.yaml | lxc profile edit puppet-master
+	cat profile-puppet-agent.yaml | lxc profile edit puppet-agent
+fi
+
+printf "Launching puppetmaster...\n"
+lxc launch ubuntu:lts puppetmaster --profile puppet-master ||
+err_exit "Error: 13 - Can not launch container."
+
+printf "Launching %s server containers...\n" "$n_pups"
+for n_pup in "$n_pups"; do
+	lxc launch ubuntu:lts server-"$n_pup" ||
+	err_exit "Error: 13 - Can not launch container."
+done
+
+printf "Waiting for initial Cloud-init provitioning to finnsh...\n"
+sleep 5
+while true; do
+	sleep 5
+	if ! {lxc exec server-$n_pup -- sh -c 'tail -n 1 /var/log/cloud-init-output.log' |
+		grep "Cloud-init*finnished at"; }; then
+		sleep 5
+	fi
+done
+
