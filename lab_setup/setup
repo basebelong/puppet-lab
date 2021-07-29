@@ -30,7 +30,8 @@ fi
 
 # Setup networkbridge
 printf "Setting up puppetbr0...\n"
-lxc network create puppetbr0 ipv6.address=none 2>/dev/null
+lxc network create puppetbr0 2>/dev/null
+lxc network set puppetbr0 ipv6.address none 2>/dev/null
 
 # Import profiles
 printf "Setting up lxd profiles...\n"
