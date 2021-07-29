@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
-# Setup script for labenvironment.
+# Setup script for puppet lab environment.
 # First edit the profile-puppet-{master,agent}.yaml in this directory to fit
 # your liking (most notably your public ssh key).
 # Depends on a working and initiated lxd install. Tries not to make too many
 # assumtions
 
 # Number of puppet agent containers
-n_pups=4
+n_pups=8
 
 err_exit () {
 	printf "%s" "$@" >&2
@@ -15,7 +15,7 @@ err_exit () {
 }
 
 # Check permissions
-if ! groups | grep "lxd"; then
+if ! groups | grep "lxd" &>/dev/null; then
 	err_exit "Not in lxd group"
 fi
 
@@ -24,41 +24,97 @@ if (( $(id -u) == 0 )); then
 fi
 
 # Check for lxd installation
-if ! which lxd; then
+if ! which lxd &>/dev/null; then
 	err_exit "Error: 10 - No lxd installed (or in \$PATH)"	
 fi
 
 # Setup networkbridge
-if ! lxc network list --format csv | awk '/^puppetbr0/ {print $1}' >&2; then
-	lxc network create puppetbr0 ||
-		err_exit "Error: 11 - Error creating bridge"
-fi
+printf "Setting up puppetbr0...\n"
+lxc network create puppetbr0 ipv6.address=none 2>/dev/null
 
 # Import profiles
-if ! lxc profile list --format csv | awk '/^puppet/ {print $1}' >&2; then
-	lxc profile create puppet-master
-	lxc profile create puppet-agent
-	cat profile-puppet-master.yaml | lxc profile edit puppet-master
-	cat profile-puppet-agent.yaml | lxc profile edit puppet-agent
-fi
+printf "Setting up lxd profiles...\n"
+lxc profile create puppet-master &>/dev/null
+lxc profile create puppet-agent &>/dev/null
+cat profile-puppet-master.yaml | lxc profile edit puppet-master
+cat profile-puppet-agent.yaml | lxc profile edit puppet-agent
 
 printf "Launching puppetmaster...\n"
 lxc launch ubuntu:lts puppetmaster --profile puppet-master ||
 err_exit "Error: 13 - Can not launch container."
 
 printf "Launching %s server containers...\n" "$n_pups"
-for n_pup in "$n_pups"; do
-	lxc launch ubuntu:lts server-"$n_pup" ||
+for i in $(seq 1 $n_pups); do
+	lxc launch ubuntu:lts server-"$i" --profile puppet-agent ||
 	err_exit "Error: 13 - Can not launch container."
 done
 
+# Tail the cloud init log and wait for finish message.
+# Should take at least 20 seconds for one container to finish.
+# High number of containers will put a substantial load on your hardware!
+# Beware!
+
 printf "Waiting for initial Cloud-init provitioning to finnsh...\n"
 sleep 5
-while true; do
-	sleep 5
-	if ! {lxc exec server-$n_pup -- sh -c 'tail -n 1 /var/log/cloud-init-output.log' |
-		grep "Cloud-init*finnished at"; }; then
-		sleep 5
+cloud_done=0
+while (( $cloud_done != 1 )); do
+	sleep 1
+	cloud_output=$(lxc exec server-$n_pups -- tail -n 1 /var/log/cloud-init-output.log)
+	if [[ $cloud_output =~ "finished at" ]]; then
+		printf "Cloud-init finished.\n"
+		cloud_done=1
 	fi
 done
 
+#
+# More variables needs to be set after containers are up and running
+#
+
+unset ip_puppetmaster
+ip_puppetmaster=$(lxc list --format csv | grep "puppetmaster" | awk -F, 'split($3,a," ") {print a[1]}')
+unset servers
+declare -A servers
+while read -r server ip ; do
+	servers["$server"]="$ip"
+done < <(lxc list --format csv | grep "server-" | awk -F, 'split($3,b," ") {print $1" "b[1]}')
+
+#
+# Pupulate /etc/hosts on both puppetmaster and all agents
+#
+
+for server in ${!servers[@]}; do
+	lxc exec puppetmaster -- sh -c "echo ${servers[$server]} $server >> /etc/hosts"
+done
+
+for server in ${!servers[@]}; do
+	lxc exec "$server" -- sh -c "echo $ip_puppetmaster puppetmaster puppet >> /etc/hosts"
+done
+lxc exec puppetmaster -- sh -c "echo $ip_puppetmaster puppetmaster puppet >> /etc/hosts"
+
+#
+# Restart puppet service on puppetmaster and all servers
+#
+
+lxc exec puppetmaster -- sh -c "systemctl restart puppetserver"
+sleep 5
+for server in ${!servers[@]}; do
+	lxc exec "$server" -- sh -c "systemctl restart puppet"
+done
+
+#
+# Sign all the certificates like a mad man!
+#
+
+sleep 10
+lxc exec puppetmaster -- sh -c "/opt/puppetlabs/bin/puppetserver ca sign --all"
+
+printf "
+	Such joy. Much relax. Great install!
+
+	Everything seems to be up and running.
+	Go ahead and learn some puppet in this
+	lovely preconfigured lxd environment!
+
+	  -- Scumbag Steve (probably).\n"
+
+exit 0
