@@ -5,8 +5,8 @@ lab_directory=/home/jonas/Github/puppet-lab
 cd "$lab_directory"
 
 tar -cf code.tar code
-lxc file push code.tar puppetmaster/etc/puppetlabs/code.tar
-lxc exec puppetmaster -- sh -c "rm -rf /etc/puppetlabs/code"
-lxc exec puppetmaster -- sh -c "tar -xf /etc/puppetlabs/code.tar -C /etc/puppetlabs"
+lxc file push code.tar puppet/etc/puppetlabs/code.tar
+lxc exec puppet -- sh -c "rm -rf /etc/puppetlabs/code"
+lxc exec puppet -- sh -c "tar -xf /etc/puppetlabs/code.tar -C /etc/puppetlabs"
 rm -f code.tar
 
