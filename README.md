@@ -36,7 +36,7 @@ The puppetmaster and agents are preconfigured to run every minute.
 All containers are reachable by ssh from the host.
 Run 'lxc list' to see the IP's.
 
-Having eight agents and one master running will kill your batter. Make sure to
+Having eight agents and one master running will kill your battery. Make sure to
 stop lxd or your containers when not using them. I.e. 'sudo snap stop lxd'.
 
 ## TODO:
