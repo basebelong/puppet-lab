@@ -21,9 +21,10 @@ config:
       - [ dpkg, -i, puppet-release-focal.deb ]
       - [ apt, update ]
       - [ apt, install, -y, puppet-agent ]
-      - [ sh, -c, "echo '[main]' >> /etc/puppetlabs/puppet/puppet.cont" ]
-      - [ sh, -c, "echo 'certname = puppetclient' >> /etc/puppetlabs/puppet/puppet.cont" ]
-      - [ sh, -c, "echo 'server = puppetmaster' >> /etc/puppetlabs/puppet/puppet.cont" ]
+      - [ sh, -c, "echo '[main]' >> /etc/puppetlabs/puppet/puppet.conf" ]
+      - [ sh, -c, "echo 'certname = puppetclient' >> /etc/puppetlabs/puppet/puppet.conf" ]
+      - [ sh, -c, "echo 'server = puppetmaster' >> /etc/puppetlabs/puppet/puppet.conf" ]
+      - [ sh, -c, "echo 'runinterval = 1m' >> /etc/puppetlabs/puppet/puppet.conf" ]
       - [ systemctl, start, puppet ]
       - [ systemctl, enable, puppet ]
 description: Puppet agent profile
