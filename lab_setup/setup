@@ -7,7 +7,7 @@
 # assumtions
 
 # Number of puppet agent containers
-n_pups=8
+n_pups=2
 
 err_exit () {
 	printf "%s" "$@" >&2
@@ -41,7 +41,7 @@ cat profile-puppet-master.yaml | lxc profile edit puppet-master
 cat profile-puppet-agent.yaml | lxc profile edit puppet-agent
 
 printf "Launching puppetmaster...\n"
-lxc launch ubuntu:lts puppetmaster --profile puppet-master ||
+lxc launch ubuntu:lts puppet --profile puppet-master ||
 err_exit "Error: 13 - Can not launch container."
 
 printf "Launching %s server containers...\n" "$n_pups"
@@ -55,7 +55,7 @@ done
 # High number of containers will put a substantial load on your hardware!
 # Beware!
 
-printf "Waiting for initial Cloud-init provitioning to finnsh...\n"
+printf "Waiting for initial Cloud-init provitioning to finsh...\n"
 sleep 5
 cloud_done=0
 while (( $cloud_done != 1 )); do
@@ -67,12 +67,14 @@ while (( $cloud_done != 1 )); do
 	fi
 done
 
+sleep 60
+
 #
 # More variables needs to be set after containers are up and running
 #
 
 unset ip_puppetmaster
-ip_puppetmaster=$(lxc list --format csv | grep "puppetmaster" | awk -F, 'split($3,a," ") {print a[1]}')
+ip_puppetmaster=$(lxc list --format csv | grep "puppet" | awk -F, 'split($3,a," ") {print a[1]}')
 unset servers
 declare -A servers
 while read -r server ip ; do
@@ -84,20 +86,21 @@ done < <(lxc list --format csv | grep "server-" | awk -F, 'split($3,b," ") {prin
 #
 
 for server in ${!servers[@]}; do
-	lxc exec puppetmaster -- sh -c "echo ${servers[$server]} $server >> /etc/hosts"
+	lxc exec puppet -- sh -c "echo ${servers[$server]} ${server}.lxd $server >> /etc/hosts"
 done
 
 for server in ${!servers[@]}; do
-	lxc exec "$server" -- sh -c "echo $ip_puppetmaster puppetmaster puppet >> /etc/hosts"
+	lxc exec "$server" -- sh -c "echo $ip_puppetmaster puppet.lxd puppet >> /etc/hosts"
 done
-lxc exec puppetmaster -- sh -c "echo $ip_puppetmaster puppetmaster puppet >> /etc/hosts"
+lxc exec puppet -- sh -c "echo $ip_puppetmaster puppet.lxd puppet >> /etc/hosts"
 
 #
 # Restart puppet service on puppetmaster and all servers
 #
 
-lxc exec puppetmaster -- sh -c "systemctl restart puppetserver"
-sleep 5
+lxc exec puppet -- sh -c "systemctl restart puppetserver"
+sleep 20
+
 for server in ${!servers[@]}; do
 	lxc exec "$server" -- sh -c "systemctl restart puppet"
 done
@@ -106,8 +109,8 @@ done
 # Sign all the certificates like a mad man!
 #
 
-sleep 10
-lxc exec puppetmaster -- sh -c "/opt/puppetlabs/bin/puppetserver ca sign --all"
+sleep 20
+lxc exec puppet -- sh -c "/opt/puppetlabs/bin/puppetserver ca sign --all"
 
 printf "
 	Such joy. Much relax. Great install!
