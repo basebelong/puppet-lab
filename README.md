@@ -3,7 +3,7 @@
 ## Environment for puppet practice
 
 **This project is to be regarded as alpha quality. DO NOT run anything from this
-repo without carefulle reading the scripts first!**
+repo without carefully reading the scripts first!**
 
 To avoid using heavy vm's or (for labbing) expensive cloud-instances - LXD is 
 the obvious solution!
@@ -43,7 +43,7 @@ stop lxd or your containers when not using them. I.e. 'sudo snap stop lxd'.
 - [ ] Cleanup script (removing containers and bridge).
 - [ ] Scripts for adding and removing agents.
 
-Docs used for reference:
+## Docs used for reference:
 
   * https://phoenixnap.com/kb/install-puppet-ubuntu
   * https://www.linode.com/docs/guides/getting-started-with-puppet-6-1-basic-installation-and-setup/
