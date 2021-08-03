@@ -1,5 +1,7 @@
 # puppet-lab
 
+<img width="200" src="icon.svg">
+
 ## Environment for puppet practice
 
 **This project is to be regarded as alpha quality. DO NOT run anything from this
