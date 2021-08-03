@@ -1,6 +1,6 @@
 # puppet-lab
 
-<img style="margin: auto; width: 4rem;" src="icon.svg">
+<img width="200" src="icon.svg">
 
 ## Environment for puppet practice
 
