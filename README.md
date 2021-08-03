@@ -1,6 +1,6 @@
 # puppet-lab
 
-![puppet-lab](icon.svg)
+<img style="margin: auto" src="./icon.svg" width="4rem">
 
 ## Environment for puppet practice
 
