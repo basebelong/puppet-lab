@@ -7,7 +7,7 @@
 # assumtions
 
 # Number of puppet agent containers
-n_pups=2
+n_pups=4
 
 err_exit () {
 	printf "%s" "$@" >&2
@@ -67,8 +67,6 @@ while (( $cloud_done != 1 )); do
 	fi
 done
 
-sleep 60
-
 #
 # More variables needs to be set after containers are up and running
 #
@@ -104,12 +102,12 @@ sleep 20
 for server in ${!servers[@]}; do
 	lxc exec "$server" -- sh -c "systemctl restart puppet"
 done
+sleep 20
 
 #
 # Sign all the certificates like a mad man!
 #
 
-sleep 20
 lxc exec puppet -- sh -c "/opt/puppetlabs/bin/puppetserver ca sign --all"
 
 printf "
