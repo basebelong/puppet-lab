@@ -1,6 +1,6 @@
 # puppet-lab
 
-![puppet-lab](icon.svg)
+![puppet-lab](icon.svg | height=100)
 
 ## Environment for puppet practice
 
