@@ -16,7 +16,7 @@ config:
       - [ apt-get, update ]
       - [ apt-get, install, -y, puppet-agent ]
       - [ bash, -c, "echo '[main]' >> /etc/puppetlabs/puppet/puppet.conf" ]
-      - [ echo, 'server = {{ ds.meta_data.local_hostname }}', >>, /etc/puppetlabs/puppet/puppet.conf ]
+      - [ bash, -c, 'echo "certname = $(hostname)" >> /etc/puppetlabs/puppet/puppet.conf' ]
       - [ bash, -c, "echo 'server = puppet.lxd' >> /etc/puppetlabs/puppet/puppet.conf" ]
       - [ bash, -c, "echo 'runinterval = 1m' >> /etc/puppetlabs/puppet/puppet.conf" ]
       - [ systemctl, start, puppet ]
