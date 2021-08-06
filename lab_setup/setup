@@ -7,7 +7,7 @@
 # assumtions
 
 # Number of puppet agent containers
-n_pups=4
+n_pups=8
 
 err_exit () {
 	printf "%s" "$@" >&2
@@ -50,17 +50,29 @@ for i in $(seq 1 $n_pups); do
 	err_exit "Error: 13 - Can not launch container."
 done
 
-# Tail the cloud init log and wait for finish message.
+# Tail the cloud init log and wait for finish message on the highest n agent.
 # Should take at least 20 seconds for one container to finish.
 # High number of containers will put a substantial load on your hardware!
 # Beware!
 
-printf "Waiting for initial Cloud-init provitioning to finsh...\n"
-sleep 5
+printf "Waiting for initial Cloud-init provitioning to finsh on agent server-${n_pups}...\n"
 cloud_done=0
 while (( $cloud_done != 1 )); do
 	sleep 1
 	cloud_output=$(lxc exec server-$n_pups -- tail -n 1 /var/log/cloud-init-output.log)
+	if [[ $cloud_output =~ "finished at" ]]; then
+		printf "Cloud-init finished.\n"
+		cloud_done=1
+	fi
+done
+
+# Now do the same for puppetmaster.
+
+printf "Waiting for initial Cloud-init provitioning to finsh on puppetmaster...\n"
+cloud_done=0
+while (( $cloud_done != 1 )); do
+	sleep 1
+	cloud_output=$(lxc exec puppet -- tail -n 1 /var/log/cloud-init-output.log)
 	if [[ $cloud_output =~ "finished at" ]]; then
 		printf "Cloud-init finished.\n"
 		cloud_done=1
@@ -95,6 +107,8 @@ lxc exec puppet -- sh -c "echo $ip_puppetmaster puppet.lxd puppet >> /etc/hosts"
 #
 # Restart puppet service on puppetmaster and all servers
 #
+
+sleep 300
 
 lxc exec puppet -- sh -c "systemctl restart puppetserver"
 sleep 20
