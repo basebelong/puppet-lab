@@ -113,7 +113,10 @@ lxc exec puppet -- sh -c "echo $ip_puppetmaster puppet.lxd puppet >> /etc/hosts"
 # Restart puppet service on puppetmaster and all servers
 #
 
+# TODO: Check that puppet is done installing before attemting to restart.
+# Sleep in the meantime.
 
+sleep 60
 lxc exec puppet -- sh -c "systemctl restart puppetserver"
 sleep 20
 
